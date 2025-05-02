@@ -1,6 +1,7 @@
 .env*
 **/__pycache__
 app/dataset/*
+app/model/*
 app/model/01_download/*
 app/model/02_trained/*
 app/script/temp/*
