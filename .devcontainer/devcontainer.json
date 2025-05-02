@@ -1,0 +1,69 @@
+{
+    // # devcontainer.json sample
+    // recommend: Do not sort json
+    // ## To create image
+    "name": "modelrunner",
+    "workspaceFolder": "/workspace",
+    "shutdownAction": "stopContainer",
+    "privileged": true,
+    "init": true,
+
+    // ## From base image
+    "build": {
+        "dockerfile": "./Dockerfile",
+        "args": {
+            "TAG": "12.8.1-cudnn-devel-ubuntu22.04"
+        }
+    },
+
+    // ## Resources
+    // warning: Can not use Env
+    "mounts": [
+        {
+            "type": "bind",
+            "source": "${localWorkspaceFolder}",
+            "target": "${containerWorkspaceFolder}"
+        },
+        {
+            "type": "volume",
+            "source": "docker_volume",
+            "target": "/var/lib/docker"
+        }
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "username": "developer"
+        },
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/python:1": {
+            "version": "3.10"
+        }
+    },
+
+    // ## Environment
+    "remoteUser": "developer",
+    "containerEnv": {
+        "TZ": "Asia/Tokyo",
+        "LANG": "C.UTF-8"
+    },
+    "remoteEnv": {},
+    "forwardPorts": [8000],
+    "runArgs": ["--gpus=all", "--shm-size=16g"],
+
+    // ## Container command
+    // warning: To use .sh you need mount
+    // info: key is output stage
+    "overrideCommand": true,
+    "postCreateCommand": {
+        "pipInstall": "pip3 install -r /workspace/app/script/requirements.txt"
+    },
+
+    // ## IDE
+    "customizations": {
+        "vscode": {
+            "extensions": [],
+            "settings": {}
+        }
+    }
+}

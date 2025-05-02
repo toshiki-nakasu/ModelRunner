@@ -1,0 +1,102 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "必要なPythonパッケージのインストール",
+            "type": "shell",
+            "command": "pip3 install -r ${workspaceFolder}/app/script/requirements.txt",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "モデルダウンロード",
+            "type": "shell",
+            "command": "python3",
+            "args": ["${workspaceFolder}/app/script/01_download.py"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "モデル学習",
+            "type": "shell",
+            "command": "python3",
+            "args": ["${workspaceFolder}/app/script/02_train.py"],
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "FastAPIアプリ実行",
+            "type": "shell",
+            "command": "uvicorn app.script.03_app:app --reload --host 0.0.0.0 --port 8000",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "AIモデルでテキスト生成",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "${workspaceFolder}/test/model_post/model_post.py",
+                "${input:textInput}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Dockerイメージのビルド",
+            "type": "shell",
+            "command": "docker build -f app/Dockerfile -t my-custom-llm .",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "モデル推論用コンテナの実行",
+            "type": "shell",
+            "command": "docker run -p 8000:8000 my-custom-llm",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "textInput",
+            "description": "テキスト生成のための入力",
+            "default": "test-text",
+            "type": "promptString"
+        }
+    ]
+}
