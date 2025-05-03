@@ -1,11 +1,19 @@
+# 環境変数ファイル
 .env*
+!.env.sample
+
+# Pythonキャッシュファイル
 **/__pycache__
+
+# アプリケーションデータ
 app/dataset/*
+!app/dataset/sample.jsonl
+
+# モデルファイル
 app/model/*
-app/model/01_download/*
-app/model/02_trained/*
+
+# 一時ファイル
 app/script/temp/*
 
+# 空ディレクトリ保持用
 !**/.gitkeep
-!.env.sample
-!app/dataset/sample.jsonl
