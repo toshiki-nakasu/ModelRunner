@@ -31,8 +31,8 @@ def download_model(model_name, save_path):
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
             device_map="auto",  # 利用可能なデバイスに自動的に分散
+            low_cpu_mem_usage=True,      # CPU メモリ使用量を抑える
             torch_dtype=torch.bfloat16,  # メモリ使用量削減のため半精度を使用
-            low_cpu_mem_usage=True       # CPU メモリ使用量を抑える
         )
 
         # ローカルに保存（シャードサイズを小さく設定し、safetensors形式で保存）

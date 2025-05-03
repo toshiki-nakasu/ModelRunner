@@ -16,4 +16,4 @@ COPY app/script/03_app.py ./script/03_app.py
 EXPOSE 8000
 
 # APIサーバーを起動
-CMD ["uvicorn", "script.03_app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3", "script/03_app.py"]

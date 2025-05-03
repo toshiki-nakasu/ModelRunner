@@ -193,20 +193,12 @@ def prepare_tokenizer_and_model(model_path):
         llm_int8_enable_fp32_cpu_offload=True,  # CPUオフロードを許可
     )
 
-    # デバイスマップの設定（自動または手動）
-    if use_gpu:
-        # 自動デバイスマッピング（GPUがある場合）
-        device_map = "auto"
-    else:
-        # CPUのみの場合
-        device_map = {"": "cpu"}
-
     # accelerator対応のモデル読み込み設定
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
-        quantization_config=quantization_config,
-        device_map=device_map,
+        device_map="auto",
         low_cpu_mem_usage=True,
+        quantization_config=quantization_config,
         torch_dtype=torch.float16 if use_gpu else torch.float32,
     )
 

@@ -39,7 +39,8 @@
         {
             "label": "FastAPIアプリ実行",
             "type": "shell",
-            "command": "uvicorn app.script.03_app:app --reload --host 0.0.0.0 --port 8000",
+            "command": "python3",
+            "args": ["${workspaceFolder}/app/script/03_app.py"],
             "group": {
                 "kind": "build",
                 "isDefault": true
