@@ -53,15 +53,9 @@
         {
             "label": "AIモデルでテキスト生成",
             "type": "shell",
-            "command": "python3",
-            "args": [
-                "${workspaceFolder}/test/model_post/model_post.py",
-                "${input:textInput}"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "command": "${workspaceFolder}/test/model_post/model_post.sh",
+            "args": ["${input:textInput}"],
+            "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"

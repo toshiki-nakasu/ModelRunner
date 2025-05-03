@@ -78,7 +78,7 @@ devcontainerで開発環境を構築することが可能になっている
 6. 学習したモデルをFastAPIアプリとして実行
     1. `uvicorn app.script.03_app:app --reload --host 0.0.0.0 --port 8000`
     2. スクリプトの引数にこちらからのテキストを入力し、POSTリクエスト
-        `python3 test/model_post/model_post.py "test-text"`
+        `bash test/model_post/model_post.sh test-text`
     3. 推論結果がresponseで返される
 7. モデルが起動するDockerイメージをビルド
     1. `docker build -f app/Dockerfile -t my-custom-llm .`
