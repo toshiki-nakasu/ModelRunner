@@ -1,8 +1,10 @@
+from accelerate import Accelerator
 from datasets import load_dataset
 import os
 import pathlib
+from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, TaskType
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, Trainer, TrainingArguments
 
 
 def check_gpu():
@@ -131,6 +133,10 @@ def train_model(model, tokenizer, train_dataset, results_dir, logs_dir, gpu_avai
     # GPUに合わせてバッチサイズを調整
     batch_size = 4 if gpu_available else 2
 
+    # acceleratorの初期化
+    accelerator = Accelerator()
+    print(f"Accelerator 設定: {accelerator.state}")
+
     # トレーニングの設定
     training_args = TrainingArguments(
         output_dir=results_dir,          # チェックポイント保存先
@@ -140,7 +146,7 @@ def train_model(model, tokenizer, train_dataset, results_dir, logs_dir, gpu_avai
         save_steps=1000,                 # チェックポイント保存頻度
         save_total_limit=2,              # 保存するチェックポイントの数
         logging_dir=logs_dir,            # ログディレクトリ
-        fp16=True if gpu_available else False,    # GPU使用時のみ16ビット精度を使用
+        fp16=accelerator.mixed_precision == "fp16",   # acceleratorの設定に合わせる
         dataloader_num_workers=2,        # データローダーの並列処理
         gradient_checkpointing=True,     # メモリ効率化のためのチェックポイント
         report_to="tensorboard",         # テンソルボードでの可視化
@@ -156,14 +162,17 @@ def train_model(model, tokenizer, train_dataset, results_dir, logs_dir, gpu_avai
     use_cuda = gpu_available and torch.cuda.is_available()
     print(f"CUDA使用状態: {'有効' if use_cuda else '無効'}")
 
-    # トレーナーの初期化と学習実行
+    # トレーナーの初期化（accelerateと組み合わせる）
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
     )
 
-    trainer.train()
+    # accelerateを使用してトレーニングを実行
+    with accelerator.main_process_first():
+        trainer.train()
+
     return model
 
 
@@ -176,14 +185,50 @@ def prepare_tokenizer_and_model(model_path):
     use_gpu = torch.cuda.is_available()
     print(f"モデルロード時のGPU使用: {'可能' if use_gpu else '不可'}")
 
-    # メモリ効率の良い設定でモデルを読み込む
+    print("メモリ効率のための最適化設定を適用します...")
+    # 8bit量子化の設定
+    quantization_config = BitsAndBytesConfig(
+        load_in_8bit=True,
+        llm_int8_threshold=6.0,
+        llm_int8_enable_fp32_cpu_offload=True,  # CPUオフロードを許可
+    )
+
+    # デバイスマップの設定（自動または手動）
+    if use_gpu:
+        # 自動デバイスマッピング（GPUがある場合）
+        device_map = "auto"
+    else:
+        # CPUのみの場合
+        device_map = {"": "cpu"}
+
+    # accelerator対応のモデル読み込み設定
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
-        device_map="auto" if use_gpu else None,  # 利用可能なデバイスに自動的に分散
-        # torch_dtype=torch.float16 if use_gpu else torch.float32,  # GPUではfloat16を使用
-        low_cpu_mem_usage=True,   # CPU メモリ使用量を抑える
-        use_cache=False,  # 勾配チェックポイントと互換性を持たせるために無効化
+        quantization_config=quantization_config,
+        device_map=device_map,
+        low_cpu_mem_usage=True,
+        torch_dtype=torch.float16 if use_gpu else torch.float32,
     )
+
+    # 量子化モデルにLoRAアダプタを追加
+    print("量子化モデルのためのLoRAアダプタを準備しています...")
+
+    # kbit学習のためのモデル準備
+    model = prepare_model_for_kbit_training(model)
+
+    # LoRA設定
+    lora_config = LoraConfig(
+        r=16,  # LoRAの次元（小さいほどメモリ効率が良い）
+        lora_alpha=32,  # スケーリングファクター
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],  # 対象となるモジュール
+        lora_dropout=0.05,  # ドロップアウト率
+        bias="none",  # バイアスパラメータを学習しない
+        task_type=TaskType.CAUSAL_LM  # 因果言語モデリングタスク
+    )
+
+    # LoRAアダプタをモデルに適用
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()  # 学習可能なパラメータ数を出力
 
     # トークナイザーの設定（必要に応じて）
     if tokenizer.pad_token is None:
@@ -204,7 +249,14 @@ def save_model(model, tokenizer, save_path):
     # ディレクトリがなければ作成
     os.makedirs(save_path, exist_ok=True)
 
-    model.save_pretrained(save_path)
+    # LoRAモデルの場合は、アダプタのみを保存
+    if hasattr(model, "save_pretrained") and hasattr(model, "peft_config"):
+        print("LoRAアダプタを保存しています...")
+        model.save_pretrained(save_path)
+    else:
+        # 通常のモデル保存
+        model.save_pretrained(save_path)
+
     tokenizer.save_pretrained(save_path)
     print(f"モデルを {save_path} に保存しました")
 

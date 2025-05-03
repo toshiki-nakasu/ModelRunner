@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException
 import pathlib
 from pydantic import BaseModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+import torch
 
 
 def create_app():
@@ -20,18 +21,33 @@ def create_app():
 
     print(f"モデルを {MODEL_PATH} から読み込んでいます...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
+
+    # BitsAndBytesConfigを使用した8ビット量子化の設定
+    quantization_config = BitsAndBytesConfig(
+        load_in_8bit=True,
+        bnb_4bit_compute_dtype=torch.float16
+    )
+
+    # メモリ効率的なモデルのロード方法
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_PATH,
+        quantization_config=quantization_config,  # 新しい方式で量子化設定を渡す
+        device_map="auto",
+        low_cpu_mem_usage=True
+    )
 
     class QueryInput(BaseModel):
         text: str
-        max_length: int = 100
+        max_length: int = 256
 
     @app.post("/generate/")
     async def generate_text(query: QueryInput):
         try:
             inputs = tokenizer(query.text, return_tensors="pt")
+            inputs = {k: v.to(model.device) for k, v in inputs.items()}
             outputs = model.generate(
                 inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
                 max_length=query.max_length,
                 do_sample=True,
                 temperature=0.7,

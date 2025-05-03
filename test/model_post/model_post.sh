@@ -1,21 +1,28 @@
-import json
-import requests
-import argparse
+#!/bin/bash
 
+# ヘルプメッセージ表示関数
+show_help() {
+    echo "使用法: $0 <テキスト>"
+    echo "AIモデルでテキスト生成します"
+    exit 1
+}
 
-def generate_text(input_text):
-    url = "http://0.0.0.0:8000/generate/"
-    data = {"attention_mask": "てすと", "text": input_text}
+# 引数チェック
+if [ $# -ne 1 ]; then
+    show_help
+fi
 
-    response = requests.post(url, json.dumps(data))
-    return response.json()
+# 入力テキスト
+INPUT_TEXT="$1"
 
+# APIエンドポイント
+URL="http://0.0.0.0:8000/generate/"
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='AIモデルでテキスト生成します')
-    parser.add_argument('text', type=str, help='生成のためのテキスト入力')
+# POSTリクエスト送信
+response=$(curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"text\": \"$INPUT_TEXT\"}" \
+    $URL)
 
-    args = parser.parse_args()
-
-    result = generate_text(args.text)
-    print(result)
+# レスポンス表示
+echo "$response"
