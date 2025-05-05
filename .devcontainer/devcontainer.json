@@ -47,7 +47,9 @@
         "TZ": "Asia/Tokyo",
         "LANG": "C.UTF-8"
     },
-    "remoteEnv": {},
+    "remoteEnv": {
+        "APP_DIR": "/workspace/app"
+    },
     "forwardPorts": [8000],
     "runArgs": ["--gpus=all", "--shm-size=16g"],
 
@@ -56,7 +58,7 @@
     // info: key is output stage
     "overrideCommand": true,
     "postCreateCommand": {
-        "pipInstall": "pip3 install -r /workspace/app/script/requirements.txt"
+        "pipInstall": "pip3 install -r /workspace/app/resources/requirements.txt"
     },
 
     // ## IDE

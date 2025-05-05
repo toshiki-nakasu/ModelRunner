@@ -1,6 +1,5 @@
 # 環境変数ファイル
-app/.env*
-!app/.env.sample
+app/.env
 
 # Pythonキャッシュファイル
 **/__pycache__

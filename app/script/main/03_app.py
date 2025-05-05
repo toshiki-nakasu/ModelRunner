@@ -1,8 +1,11 @@
+import dotenv
 from fastapi import FastAPI, HTTPException
+import os
 import pathlib
+import torch
 from pydantic import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-import torch
+import uvicorn
 
 
 def create_app():
@@ -14,26 +17,39 @@ def create_app():
     """
     app = FastAPI(title="Custom LLM API")
 
+    # プロジェクトルートパスを取得
+    APP_DIR = os.getenv('APP_DIR')
+
+    # 環境変数ファイルを読み込む
+    env_path = pathlib.Path(f"{APP_DIR}/.env")
+    if env_path.exists():
+        dotenv.load_dotenv(dotenv_path=env_path)
+
     # スクリプトの場所を基準に相対パスを計算する
-    SCRIPT_DIR = pathlib.Path(__file__).parent.absolute()
-    APP_DIR = SCRIPT_DIR.parent  # app ディレクトリまで遡る
-    MODEL_PATH = str(APP_DIR / "model" / "02_trained")
+    model_path = pathlib.Path(f"{APP_DIR}/resources/model/02_trained")
 
-    print(f"モデルを {MODEL_PATH} から読み込んでいます...")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+    # GPUの利用可能性を確認し設定を初期化
+    # gpu_available = check_gpu()
+    # if gpu_available:
+    #     init_gpu()
 
-    # BitsAndBytesConfigを使用した8ビット量子化の設定
+    print(f"モデルを {model_path} から読み込んでいます...")
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+    # メモリ効率のための8bit量子化設定
     quantization_config = BitsAndBytesConfig(
         load_in_8bit=True,
-        bnb_4bit_compute_dtype=torch.float16
+        llm_int8_threshold=6.0,
+        llm_int8_enable_fp32_cpu_offload=True,
     )
 
-    # メモリ効率的なモデルのロード方法
+    # モデルのロード
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_PATH,
-        quantization_config=quantization_config,  # 新しい方式で量子化設定を渡す
+        model_path,
         device_map="auto",
-        low_cpu_mem_usage=True
+        low_cpu_mem_usage=True,
+        quantization_config=quantization_config,
+        torch_dtype=torch.float16  # if gpu_available else torch.float32,
     )
 
     class QueryInput(BaseModel):
@@ -69,5 +85,4 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

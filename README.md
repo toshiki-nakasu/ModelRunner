@@ -68,15 +68,15 @@ devcontainerで開発環境を構築することが可能になっている
 3. Pythonスクリプト実行に必要なライブラリをインストールする (devcontainerの場合はコンテナ起動時にインストール済み)
     `pip3 install -r app/script/requirements.txt`
 4. 事前学習済みモデルをローカルにダウンロード
-    1. `python3 app/script/01_download.py`
+    1. `python3 app/script/main/01_download.py`
     2. `app/model/01_download`に保存される
         リポジトリには含まれません
 5. 転移学習を実行
-    1. `python3 app/script/02_train.py`
+    1. `python3 app/script/main/02_train.py`
     2. `app/model/02_trained`に保存される
         リポジトリには含まれません
 6. 学習したモデルをFastAPIアプリとして実行
-    1. `uvicorn app.script.03_app:app --reload --host 0.0.0.0 --port 8000`
+    1. `uvicorn app.script.main.03_app:app --reload --host 0.0.0.0 --port 8000`
     2. スクリプトの引数にこちらからのテキストを入力し、POSTリクエスト
         `bash test/model_post/model_post.sh test-text`
     3. 推論結果がresponseで返される
